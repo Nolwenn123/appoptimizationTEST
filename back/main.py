@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from fastapi import HTTPException
+from typing import Any, Dict, List, Optional
 
 load_dotenv()
 
@@ -86,6 +87,181 @@ def compute_usage_score_for_app(app_name: str):
         "ratio": ratio,
     }
 
+
+def get_application_details(app_name: str) -> Dict[str, Any]:
+    """Collect all details needed for the data card of a given application."""
+    # 1) fetch main application row
+    res_app = (
+        supabase.table("application")
+        .select("id, nom, saas, statut_id, source_id")
+        .eq("nom", app_name)
+        .single()
+        .execute()
+    )
+    app = res_app.data
+    app_id = app["id"]
+
+    # 2) statut
+    statut_name: Optional[str] = None
+    if app.get("statut_id"):
+        res_statut = (
+            supabase.table("statut")
+            .select("nom")
+            .eq("id", app["statut_id"])
+            .single()
+            .execute()
+        )
+        statut_name = res_statut.data["nom"] if res_statut.data else None
+
+    # 3) source
+    source_name: Optional[str] = None
+    if app.get("source_id"):
+        res_source = (
+            supabase.table("source")
+            .select("nom")
+            .eq("id", app["source_id"])
+            .single()
+            .execute()
+        )
+        source_name = res_source.data["nom"] if res_source.data else None
+
+    # 4) type fonctionnel (catégorie) - on prend le premier si plusieurs
+    category_name: Optional[str] = None
+    res_type_fct = (
+        supabase.table("application_type_fonctionnel")
+        .select("type_fonctionnel_id")
+        .eq("application_id", app_id)
+        .limit(1)
+        .execute()
+    )
+    if res_type_fct.data:
+        tf_id = res_type_fct.data[0]["type_fonctionnel_id"]
+        res_tf = (
+            supabase.table("type_fonctionnel")
+            .select("nom")
+            .eq("id", tf_id)
+            .single()
+            .execute()
+        )
+        category_name = res_tf.data["nom"] if res_tf.data else None
+
+    # 5) techno(s) - liste éventuellement multiple
+    techno_names: List[str] = []
+    res_app_tech = (
+        supabase.table("application_techno")
+        .select("techno_id")
+        .eq("application_id", app_id)
+        .execute()
+    )
+    techno_ids = [row["techno_id"] for row in res_app_tech.data or []]
+    if techno_ids:
+        res_techno = (
+            supabase.table("techno")
+            .select("nom")
+            .in_("id", techno_ids)
+            .execute()
+        )
+        techno_names = [row["nom"] for row in res_techno.data or []]
+
+    # 6) usage - dernière mesure
+    usage_value: Optional[int] = None
+    res_usage = (
+        supabase.table("usage_application")
+        .select("nombre_utilisateurs, date_mesure")
+        .eq("application_id", app_id)
+        .order("date_mesure", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if res_usage.data:
+        usage_value = res_usage.data[0]["nombre_utilisateurs"]
+
+    # 7) groupe via contrat (premier contrat trouvé)
+    group_name: Optional[str] = None
+    contract_end: Optional[str] = None
+    res_contract = (
+        supabase.table("contrat")
+        .select("groupe_id, date_fin_contrat")
+        .eq("application_id", app_id)
+        .order("date_fin_contrat", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if res_contract.data:
+        group_id = res_contract.data[0]["groupe_id"]
+        contract_end = res_contract.data[0]["date_fin_contrat"]
+        if group_id:
+            res_group = (
+                supabase.table("groupe")
+                .select("nom")
+                .eq("id", group_id)
+                .single()
+                .execute()
+            )
+            group_name = res_group.data["nom"] if res_group.data else None
+
+    # 8) contact (premier contact associé)
+    contact_name: Optional[str] = None
+    res_contact_link = (
+        supabase.table("application_contact")
+        .select("contact_id, ordre")
+        .eq("application_id", app_id)
+        .order("ordre", desc=False)
+        .limit(1)
+        .execute()
+    )
+    if res_contact_link.data:
+        contact_id = res_contact_link.data[0]["contact_id"]
+        res_contact = (
+            supabase.table("contact")
+            .select("nom")
+            .eq("id", contact_id)
+            .single()
+            .execute()
+        )
+        contact_name = res_contact.data["nom"] if res_contact.data else None
+
+    details = {
+        "nom": app["nom"],
+        "categorie": category_name,
+        "technologies": techno_names,
+        "nombre_utilisateurs": usage_value,
+        "groupe": group_name,
+        "contact": contact_name,
+        "statut": statut_name,
+        "saas": app.get("saas"),
+        "source": source_name,
+        "date_fin_contrat": contract_end,
+    }
+
+    # 9) fiabilité des données : basé sur la complétude des champs clés
+    def is_missing(value: Any) -> bool:
+        if value is None:
+            return True
+        if isinstance(value, str) and not value.strip():
+            return True
+        if isinstance(value, list) and len(value) == 0:
+            return True
+        return False
+
+    fields_to_check = [
+        details["categorie"],
+        details["technologies"],
+        details["nombre_utilisateurs"],
+        details["groupe"],
+        details["contact"],
+        details["statut"],
+        details["saas"],
+        details["source"],
+        details["date_fin_contrat"],
+    ]
+
+    missing_count = sum(1 for value in fields_to_check if is_missing(value))
+    completeness_ratio = max(0.0, 1 - missing_count / len(fields_to_check))
+    details["reliability"] = round(completeness_ratio * 100, 1)
+
+    return details
+
 @app.get("/")
 async def root():
     return {"message": "Bienvenue sur mon API FastAPI 😊"}
@@ -104,5 +280,13 @@ async def usage_score(app_name: str):
     try:
         result = compute_usage_score_for_app(app_name)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/applications/{app_name}/details")
+async def application_details(app_name: str):
+    try:
+        return get_application_details(app_name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

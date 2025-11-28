@@ -243,6 +243,16 @@
   background: #f1b784;
 }
 
+.focus-card--undefined {
+  background: #f3f4f6;
+  color: #4f566a;
+}
+
+.focus-card--undefined .focus-card__dot {
+  background: #bfbfbf;
+  box-shadow: 0 0 0 4px rgba(141, 145, 155, 0.2);
+}
+
 @media (max-width: 760px) {
   .hero-focus__grid {
     justify-content: center;

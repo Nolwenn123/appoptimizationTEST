@@ -3,30 +3,30 @@ import { Link, useParams } from 'react-router-dom'
 import './Details.css'
 
 const HERO_STATS = [
-  { label: 'Fiabilité de l’analyse', value: '92%', tone: 'mint' },
-  { label: 'Redondances fonctionnelles', value: '12%', tone: 'rose' },
-  { label: 'Taux d’usage interne', value: '76%', tone: 'sky' },
+  { key: 'reliability', label: 'Fiabilité de l’analyse', tone: 'mint' },
+  { key: 'redundancy', label: 'Redondances fonctionnelles', tone: 'rose' },
+  { key: 'usage', label: 'Taux d’usage interne', tone: 'sky' },
 ]
 
-const EXPERTISE_PILLS = [
-  { label: 'Usage', tone: 'green' },
-  { label: 'Finance', tone: 'orange' },
-  { label: 'Fonctionnalités', tone: 'green' },
-  { label: 'Risques', tone: 'green' },
-  { label: 'Redondances', tone: 'red' },
-  { label: 'Satisfaction', tone: 'green' },
+const FOCUS_CRITERIA = [
+  { key: 'usage', label: 'Usage' },
+  { key: 'finance', label: 'Finance' },
+  { key: 'features', label: 'Fonctionnalités' },
+  { key: 'risks', label: 'Risques' },
+  { key: 'redundancy', label: 'Redondances' },
+  { key: 'satisfaction', label: 'Satisfaction' },
 ]
 
-const DATA_ROWS = [
-  { label: 'Catégorie', value: 'Ticketing' },
-  { label: 'Technologies', value: 'Trello' },
-  { label: 'Nombre d’utilisateurs', value: '1 800' },
-  { label: 'Groupe', value: 'Non renseigné' },
-  { label: 'Contact', value: 'Louis Dupont' },
-  { label: 'Statut', value: 'En production' },
-  { label: 'SaaS', value: 'Oui' },
-  { label: 'Source', value: 'Fichier Beamy, API' },
-  { label: 'Date de fin de contrat', value: '12/12/2025' },
+const DATA_FIELDS = [
+  { key: 'categorie', label: 'Catégorie' },
+  { key: 'technologies', label: 'Technologies' },
+  { key: 'nombre_utilisateurs', label: 'Nombre d’utilisateurs' },
+  { key: 'groupe', label: 'Groupe' },
+  { key: 'contact', label: 'Contact' },
+  { key: 'statut', label: 'Statut' },
+  { key: 'saas', label: 'SaaS' },
+  { key: 'source', label: 'Source' },
+  { key: 'date_fin_contrat', label: 'Date de fin de contrat' },
 ]
 
 const METRIC_SECTIONS = [
@@ -110,7 +110,22 @@ const METRIC_SECTIONS = [
 
 export function Details() {
   const { appId } = useParams()
-  const [usageTone, setUsageTone] = useState('orange')
+  const DEFAULT_TONE = 'undefined'
+  const [criteriaTones, setCriteriaTones] = useState(() =>
+    FOCUS_CRITERIA.reduce((acc, criterion) => ({ ...acc, [criterion.key]: DEFAULT_TONE }), {}),
+  )
+  const [reliability, setReliability] = useState('—')
+  const [dataDetails, setDataDetails] = useState({
+    categorie: 'Non renseigné',
+    technologies: [],
+    nombre_utilisateurs: null,
+    groupe: 'Non renseigné',
+    contact: 'Non renseigné',
+    statut: 'Non renseigné',
+    saas: 'Non renseigné',
+    source: 'Non renseigné',
+    date_fin_contrat: null,
+  })
 
   const decodedName = useMemo(() => {
     if (!appId) return '[nom_app]'
@@ -124,6 +139,7 @@ export function Details() {
   useEffect(() => {
     if (!decodedName || decodedName === '[nom_app]') return
 
+    const levelToTone = { good: 'green', medium: 'orange', low: 'red' }
     const fetchUsage = async () => {
       try {
         const res = await fetch(
@@ -132,20 +148,83 @@ export function Details() {
         const data = await res.json()
 
         // data.level = "good" | "medium" | "low"
-        if (data.level === 'good') setUsageTone('green')
-        else if (data.level === 'medium') setUsageTone('orange')
-        else setUsageTone('red')
+        const tone = levelToTone[data.level] ?? DEFAULT_TONE
+        setCriteriaTones((previous) => ({ ...previous, usage: tone }))
       } catch (e) {
         console.error('Erreur usage-score', e)
-        setUsageTone('orange') // fallback
+        setCriteriaTones((previous) => ({ ...previous, usage: DEFAULT_TONE }))
       }
     }
 
     fetchUsage()
   }, [decodedName])
 
+  useEffect(() => {
+    if (!decodedName || decodedName === '[nom_app]') return
+
+    const formatSaas = (value) => {
+      if (value === true) return 'Oui'
+      if (value === false) return 'Non'
+      return 'Non renseigné'
+    }
+
+    const formatDate = (value) => {
+      if (!value) return 'Non renseigné'
+      const parsed = new Date(value)
+      return Number.isNaN(parsed.getTime())
+        ? 'Non renseigné'
+        : parsed.toLocaleDateString('fr-FR')
+    }
+
+    const fetchDetails = async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:8000/applications/${encodeURIComponent(decodedName)}/details`,
+        )
+        const data = await res.json()
+
+        setDataDetails({
+          categorie: data.categorie ?? 'Non renseigné',
+          technologies: Array.isArray(data.technologies) ? data.technologies : [],
+          nombre_utilisateurs:
+            typeof data.nombre_utilisateurs === 'number' ? data.nombre_utilisateurs : null,
+          groupe: data.groupe ?? 'Non renseigné',
+          contact: data.contact ?? 'Non renseigné',
+          statut: data.statut ?? 'Non renseigné',
+          saas: formatSaas(data.saas),
+          source: data.source ?? 'Non renseigné',
+          date_fin_contrat: formatDate(data.date_fin_contrat),
+        })
+
+        if (typeof data.reliability === 'number') {
+          setReliability(`${Math.round(data.reliability)}%`)
+        } else {
+          setReliability('—')
+        }
+      } catch (error) {
+        console.error('Erreur application details', error)
+      }
+    }
+
+    fetchDetails()
+  }, [decodedName])
+
   // Static placeholder status instead of external theme
   const heroStatus = { className: 'status-bullet--placeholder', label: 'Statut (placeholder)' }
+
+  const getDataValue = (key) => {
+    const value = dataDetails[key]
+
+    if (key === 'technologies') {
+      return Array.isArray(value) && value.length ? value.join(', ') : 'Non renseigné'
+    }
+
+    if (key === 'nombre_utilisateurs') {
+      return typeof value === 'number' ? value.toLocaleString('fr-FR') : 'Non renseigné'
+    }
+
+    return value ?? 'Non renseigné'
+  }
 
   return (
     <div className="details-page">
@@ -180,7 +259,9 @@ export function Details() {
               <div className="hero-stats">
                 {HERO_STATS.map((stat) => (
                   <div key={stat.label} className={`hero-stat hero-stat--${stat.tone}`}>
-                    <span className="hero-stat__value">—</span>
+                    <span className="hero-stat__value">
+                      {stat.key === 'reliability' ? reliability : '—'}
+                    </span>
                     <span className="hero-stat__label">{stat.label}</span>
                   </div>
                 ))}
@@ -189,19 +270,20 @@ export function Details() {
             <section className="hero-focus">
               <h2>Points forts / A améliorer</h2>
               <div className="hero-focus__grid">
-                {EXPERTISE_PILLS.map((pill) => {
-  const tone =
-    pill.label === 'Usage'
-      ? usageTone // 👈 dynamique
-      : pill.tone
+                {FOCUS_CRITERIA.map((criterion) => {
+                  const tone = criteriaTones[criterion.key] ?? DEFAULT_TONE
+                  const isUndefined = tone === DEFAULT_TONE
 
-  return (
-    <div key={pill.label} className={`focus-card focus-card--${tone}`}>
-      <span className="focus-card__dot" aria-hidden="true" />
-      <span className="focus-card__label">{pill.label}</span>
-    </div>
-  )
-})}
+                  return (
+                    <div key={criterion.key} className={`focus-card focus-card--${tone}`}>
+                      <span
+                        className={`focus-card__dot ${isUndefined ? 'status-undefined' : ''}`}
+                        aria-hidden="true"
+                      />
+                      <span className="focus-card__label">{criterion.label}</span>
+                    </div>
+                  )
+                })}
               </div>
             </section>
           </div>
@@ -212,10 +294,10 @@ export function Details() {
                 <h1>Données</h1>
               </header>
               <div className="data-grid">
-                {DATA_ROWS.map((row) => (
-                  <div key={row.label} className="data-grid__row">
+                {DATA_FIELDS.map((row) => (
+                  <div key={row.key} className="data-grid__row">
                     <span className="data-grid__label">{row.label}</span>
-                    <span className="data-grid__value">—</span>
+                    <span className="data-grid__value">{getDataValue(row.key)}</span>
                   </div>
                 ))}
               </div>
