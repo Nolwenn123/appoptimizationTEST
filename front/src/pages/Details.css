@@ -28,7 +28,7 @@
 .hero-card {
   border-radius: 22px;
   padding: clamp(3rem, 4vw, 4rem);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(240, 242, 246, 0.82));
+  background: #ffffff;
   box-shadow:
     0 32px 64px rgba(149, 156, 191, 0.22),
     0 1px 0 rgba(255, 255, 255, 0.6);
@@ -274,7 +274,7 @@
 .spotlight-card {
   border-radius: 34px;
   padding: clamp(2rem, 3.2vw, 2.8rem);
-  background: linear-gradient(145deg, rgba(251, 251, 253, 0.95), rgba(243, 245, 250, 0.82));
+  background: #ffffff;
   box-shadow:
     0 32px 64px rgba(149, 156, 191, 0.2),
     0 1px 0 rgba(255, 255, 255, 0.6);
@@ -372,7 +372,7 @@
 .data-card {
   border-radius: 34px;
   padding: clamp(2.1rem, 3.2vw, 2.9rem);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(251, 251, 253, 0.82));
+  background: #ffffff;
   box-shadow:
     0 28px 58px rgba(149, 156, 191, 0.2),
     0 1px 0 rgba(255, 255, 255, 0.6);
@@ -436,7 +436,7 @@
 .metrics-card {
   border-radius: 30px;
   padding: clamp(2rem, 3vw, 2.6rem);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(240, 242, 246, 0.82));
+  background: #ffffff;
   box-shadow:
     0 22px 48px rgba(152, 160, 204, 0.2),
     0 1px 0 rgba(255, 255, 255, 0.6);
@@ -544,6 +544,19 @@
   border-radius: 22px;
   overflow: hidden;
   background: transparent;
+}
+
+.sparkline--disabled {
+  background: #f3f4f6;
+}
+
+.sparkline--disabled .sparkline__curve {
+  display: none;
+}
+
+.sparkline--disabled::before,
+.sparkline--disabled::after {
+  background: rgba(180, 184, 195, 0.4);
 }
 
 .sparkline::before {
@@ -672,6 +685,10 @@
   background: transparent;
 }
 
+.sparkline-bar--muted {
+  background: #f3f4f6;
+}
+
 /* Axes, même style que la courbe */
 .sparkline-bar::before {
   content: '';
@@ -717,8 +734,40 @@
 .bar-chart__bar {
   width: 26px;
   max-width: 32px;
-  border-radius: 999px 999px 8px 8px;
+  border-radius: 30px;
   background: rgba(0, 0, 0, 0.12); /* bien visible */
+}
+
+.bar-chart__bar--muted {
+  background: #cfd3db;
+}
+
+.bar-chart__label {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 12px;
+  color: #828aa4;
+  transform: rotate(-45deg);
+  transform-origin: top left;
+}
+
+.bar-chart__value {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 11px;
+  color: #676d80;
+}
+
+.bar-chart__y-axis {
+  position: absolute;
+  left: 6px;
+  top: 20px;
+  bottom: 24%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #828aa4;
 }
 
 

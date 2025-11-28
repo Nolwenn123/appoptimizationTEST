@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from fastapi import HTTPException
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 load_dotenv()
 
@@ -165,9 +165,10 @@ def get_application_details(app_name: str) -> Dict[str, Any]:
 
     # 6) usage - dernière mesure
     usage_value: Optional[int] = None
+    active_90: Optional[int] = None
     res_usage = (
         supabase.table("usage_application")
-        .select("nombre_utilisateurs, date_mesure")
+        .select("nombre_utilisateurs, utilisateurs_actifs_90j, date_mesure")
         .eq("application_id", app_id)
         .order("date_mesure", desc=True)
         .limit(1)
@@ -175,13 +176,15 @@ def get_application_details(app_name: str) -> Dict[str, Any]:
     )
     if res_usage.data:
         usage_value = res_usage.data[0]["nombre_utilisateurs"]
+        active_90 = res_usage.data[0].get("utilisateurs_actifs_90j")
 
     # 7) groupe via contrat (premier contrat trouvé)
     group_name: Optional[str] = None
     contract_end: Optional[str] = None
+    unit_price: Optional[float] = None
     res_contract = (
         supabase.table("contrat")
-        .select("groupe_id, date_fin_contrat")
+        .select("groupe_id, date_fin_contrat, prix_licence_unitaire")
         .eq("application_id", app_id)
         .order("date_fin_contrat", desc=True)
         .limit(1)
@@ -190,6 +193,7 @@ def get_application_details(app_name: str) -> Dict[str, Any]:
     if res_contract.data:
         group_id = res_contract.data[0]["groupe_id"]
         contract_end = res_contract.data[0]["date_fin_contrat"]
+        unit_price = res_contract.data[0].get("prix_licence_unitaire")
         if group_id:
             res_group = (
                 supabase.table("groupe")
@@ -226,12 +230,14 @@ def get_application_details(app_name: str) -> Dict[str, Any]:
         "categorie": category_name,
         "technologies": techno_names,
         "nombre_utilisateurs": usage_value,
+        "utilisateurs_actifs_90j": active_90,
         "groupe": group_name,
         "contact": contact_name,
         "statut": statut_name,
         "saas": app.get("saas"),
         "source": source_name,
         "date_fin_contrat": contract_end,
+        "prix_licence_unitaire": unit_price,
     }
 
     # 9) fiabilité des données : basé sur la complétude des champs clés
@@ -248,12 +254,14 @@ def get_application_details(app_name: str) -> Dict[str, Any]:
         details["categorie"],
         details["technologies"],
         details["nombre_utilisateurs"],
+        details["utilisateurs_actifs_90j"],
         details["groupe"],
         details["contact"],
         details["statut"],
         details["saas"],
         details["source"],
         details["date_fin_contrat"],
+        details["prix_licence_unitaire"],
     ]
 
     missing_count = sum(1 for value in fields_to_check if is_missing(value))
@@ -261,6 +269,34 @@ def get_application_details(app_name: str) -> Dict[str, Any]:
     details["reliability"] = round(completeness_ratio * 100, 1)
 
     return details
+
+
+def get_app_costs() -> List[Dict[str, Any]]:
+    """Return list of applications with their latest unit price if available."""
+    # Fetch all applications (id, name)
+    res_apps = supabase.table("application").select("id, nom").execute()
+    apps = res_apps.data or []
+    app_index = {row["id"]: row["nom"] for row in apps}
+
+    # Fetch contracts ordered by date to keep latest per app
+    res_contracts = (
+        supabase.table("contrat")
+        .select("application_id, prix_licence_unitaire, date_fin_contrat")
+        .order("date_fin_contrat", desc=True)
+        .execute()
+    )
+    latest_by_app: Dict[int, Tuple[Optional[str], Optional[float]]] = {}
+    for row in res_contracts.data or []:
+        app_id = row["application_id"]
+        if app_id not in latest_by_app:
+            latest_by_app[app_id] = (row.get("date_fin_contrat"), row.get("prix_licence_unitaire"))
+
+    costs: List[Dict[str, Any]] = []
+    for app_id, app_name in app_index.items():
+        price = latest_by_app.get(app_id, (None, None))[1]
+        costs.append({"nom": app_name, "prix_licence_unitaire": price})
+
+    return costs
 
 @app.get("/")
 async def root():
@@ -288,5 +324,13 @@ async def usage_score(app_name: str):
 async def application_details(app_name: str):
     try:
         return get_application_details(app_name)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/applications/costs")
+async def applications_costs():
+    try:
+        return get_app_costs()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
