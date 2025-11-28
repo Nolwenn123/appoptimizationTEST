@@ -1,0 +1,137 @@
+:root {
+  --font-body: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-title: 'Poppins-SemiBold', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --size-body: 1rem;
+  --size-small: 0.8125rem;
+  --size-h1: 2rem;
+  --size-h2: 1.25rem;
+  --size-h3: 1rem;
+  --size-h6: var(--size-small);
+  font-family: var(--font-body);
+  font-size: var(--size-body);
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+  color: #1f2330;
+  background-color: #f3f2f7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  display: flex;
+  background-color: #f3f2f7;
+  background-image:
+    radial-gradient(60vw 60vw at -10% -10%, rgba(180, 180, 182, 0.9) 0%, rgba(180, 180, 182, 0.3) 35%, rgba(245, 244, 250, 0) 70%),
+    radial-gradient(60vw 60vw at 110% -10%, rgba(210, 190, 255, 0.85) 0%, rgba(210, 190, 255, 0.3) 35%, rgba(245, 244, 250, 0) 70%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  overflow: hidden;
+}
+
+a {
+  font-weight: 500;
+  color: #5963b5;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #4a55a8;
+}
+
+button {
+  font-family: inherit;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-title);
+  margin: 0;
+}
+
+h1 {
+  font-size: var(--size-h1);
+}
+
+h2 {
+  font-size: var(--size-h2);
+}
+
+h3 {
+  font-size: var(--size-h3);
+}
+
+h6 {
+  font-family: 'Poppins-Light', sans-serif;
+  font-style: italic;
+  font-size: var(--size-h6);
+  color: #8e95ad;
+  margin: 0;
+}
+
+@media (max-width: 1400px) {
+  body {
+    overflow-y: auto;
+  }
+  :root {
+    --size-body: 0.875rem;
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    background-attachment: scroll;
+  }
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/inter/Inter-VariableFont_opsz,wght.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter-Italic';
+  src: url('./assets/fonts/inter/Inter-Italic-VariableFont_opsz,wght.ttf') format('truetype');
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins-Regular';
+  src: url('./assets/fonts/poppins/Poppins-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins-Bold';
+  src: url('./assets/fonts/poppins/Poppins-Bold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Poppins-Italic';
+  src: url('./assets/fonts/poppins/Poppins-Italic.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Poppins-Light';
+  src: url('./assets/fonts/poppins/Poppins-light.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Poppins-SemiBold';
+  src: url('./assets/fonts/poppins/Poppins-SemiBold.ttf') format('truetype');
+}

@@ -1,0 +1,228 @@
+.app-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: clamp(200px, 14vw, 240px);
+  z-index: 4;
+  transform: translateX(-120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.32s ease, opacity 0.28s ease;
+}
+
+.app-navbar.is-open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-navbar__content {
+  height: 100%;
+  padding: 1.9rem 1.8rem 1.7rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2.5rem;
+  border-radius: 0 34px 34px 0;
+  background: rgb(247, 246, 250, 80%);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.14);
+  color: #1f2432;
+}
+
+.app-navbar__title {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a6175;
+  font-size: 0.78rem;
+}
+
+.app-navbar__menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.app-navbar__menu:first-of-type ul {
+  margin-top: 5rem;
+}
+
+.app-navbar__menu--footer ul {
+  gap: 0.4rem;
+}
+
+.app-navbar__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem;
+  border-radius: 18px;
+  text-decoration: none;
+  color: #222836;
+  font-weight: 500;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.app-navbar__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(232, 236, 248, 0.7));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: -1;
+}
+
+.app-navbar__link:hover {
+  color: #222836;
+  transform: none;
+}
+
+.app-navbar__link:hover::after {
+  opacity: 0;
+}
+
+.app-navbar__link:focus-visible {
+  color: #161b26;
+  transform: translateX(4px);
+}
+
+.app-navbar__link:focus-visible::after {
+  opacity: 1;
+}
+
+.app-navbar__link.is-active {
+  color: #101622;
+  transform: translateX(4px);
+}
+
+.app-navbar__link.is-active::after {
+  opacity: 1;
+}
+
+.app-navbar__link.is-active .app-navbar__label {
+  font-weight: 700;
+}
+
+.app-navbar__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 12px;
+  background: rgba(234, 239, 253, 0.8);
+  position: relative;
+}
+
+.icon-grid {
+  background: none;
+}
+
+.icon-grid::before {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 4px;
+  background: #7080f3;
+  box-shadow:
+    12px 0 0 #7080f3,
+    0 12px 0 #7080f3,
+    12px 12px 0 #7080f3;
+}
+
+.icon-spark {
+  background: none;
+}
+
+.icon-spark::before,
+.icon-spark::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffc7d0, #f4869e);
+}
+
+.icon-spark::before {
+  width: 16px;
+  height: 16px;
+  transform: rotate(45deg);
+  opacity: 0.85;
+}
+
+.icon-spark::after {
+  width: 8px;
+  height: 8px;
+  top: 4px;
+  left: 4px;
+  background: #fff4f7;
+}
+
+.icon-settings {
+  background: none;
+}
+
+.icon-settings::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid rgba(112, 128, 243, 0.45);
+  box-shadow: inset 0 0 0 3px #f5f6ff;
+}
+
+.icon-settings::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6b73b4;
+}
+
+.app-navbar__label {
+  font-size: 1rem;
+}
+
+@media (max-width: 1280px) {
+  .app-navbar {
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: clamp(200px, 20vw, 240px);
+  }
+}
+
+@media (max-width: 720px) {
+  .app-navbar {
+    top: 1.1rem;
+    left: 50%;
+    transform: translate(-50%, -120%);
+    bottom: auto;
+    width: min(92vw, 360px);
+  }
+
+  .app-navbar.is-open {
+    transform: translate(-50%, 0);
+  }
+
+  .app-navbar__content {
+    padding: 1.2rem 1.4rem 1.05rem;
+    gap: 2rem;
+  }
+
+  .app-navbar__menu ul {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
