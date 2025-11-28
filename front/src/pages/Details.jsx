@@ -33,9 +33,7 @@ const METRIC_SECTIONS = [
   {
     title: 'Analyse des usages',
     description: 'Evolution du nombres d’utilisateurs actifs en fonction du temps',
-    insight: 'Le taux d’adoption est calculé sur la base des utilisateurs actifs sur 90j.',
     badgeKey: 'activePercent',
-    badgeTone: 'positive',
     trend: null,
     axisLabels: ['mars', 'juin', 'sept.'],
     accent: 'mint',
@@ -44,9 +42,7 @@ const METRIC_SECTIONS = [
   {
     title: 'Analyse économique (coût et rentabilité)',
     description: 'Comparaison du coût par utilisateur avec les autres applications du segment.',
-    insight: 'Le coût unitaire est comparé aux autres solutions du segment.',
     badgeKey: 'unitPrice',
-    badgeTone: 'neutral',
     axisLabels: ['App A', 'App B', 'App C', 'App D', 'App E', 'App F'],
     accent: 'peach',
     chartType: 'bar',
@@ -56,9 +52,7 @@ const METRIC_SECTIONS = [
   {
     title: 'Analyse des fonctionnalités / Pertinence',
     description: 'Comparaison du nombre de fonctionnalités entre les différentes applications.',
-    insight: 'Le volume fonctionnel est mis en perspective avec les autres solutions du segment.',
     badgeKey: 'featuresCount',
-    badgeTone: 'neutral',
     axisLabels: ['App A', 'App B', 'App C', 'App D', 'App E', 'App F'],
     accent: 'violet',
     chartType: 'bar',
@@ -66,9 +60,7 @@ const METRIC_SECTIONS = [
   {
     title: 'Analyse des risques',
     description: 'Evolution du nombres d’utilisateurs actifs en fonction du temps',
-    insight: 'Le taux d’adoption est stable, aucun risque majeur détecté.',
     badgeText: '78% d’utilisateurs actifs',
-    badgeTone: 'positive',
     trend: 'up',
     axisLabels: ['mars', 'juin', 'sept.'],
     accent: 'rose',
@@ -77,9 +69,7 @@ const METRIC_SECTIONS = [
   {
     title: 'Analyse de redondance (doublons applicatifs)',
     description: 'Evolution du nombres d’utilisateurs actifs en fonction du temps',
-    insight: 'La redondance reste faible malgré quelques doublons identifiés.',
     badgeText: '78% d’utilisateurs actifs',
-    badgeTone: 'neutral',
     trend: 'down',
     axisLabels: ['mars', 'juin', 'sept.'],
     accent: 'rose',
@@ -88,9 +78,7 @@ const METRIC_SECTIONS = [
   {
     title: 'Analyse qualitative (satisfaction)',
     description: 'Evolution du nombres d’utilisateurs actifs en fonction du temps',
-    insight: 'La satisfaction moyenne reste élevée grâce à l’expérience utilisateur.',
     badgeText: '78% d’utilisateurs actifs',
-    badgeTone: 'positive',
     trend: 'up',
     axisLabels: ['mars', 'juin', 'sept.'],
     accent: 'mint',
@@ -99,9 +87,7 @@ const METRIC_SECTIONS = [
   {
     title: 'Analyse prédictive',
     description: 'Evolution du nombres d’utilisateurs actifs en fonction du temps',
-    insight: 'Les projections confirment une stabilité d’usage sur les trois prochains mois.',
     badgeText: '78% d’utilisateurs actifs',
-    badgeTone: 'neutral',
     axisLabels: ['mars', 'juin', 'sept.'],
     accent: 'sky',
     chartType: 'line',
@@ -465,15 +451,6 @@ export function Details() {
               const rawBadgeText = metric.badgeText ?? ''
               const [badgeValue, ...badgeLabelParts] = rawBadgeText.split(' ')
               const badgeLabel = badgeLabelParts.join(' ').trim()
-              const useEconomicStyle = [
-                'Analyse économique (coût et rentabilité)',
-                'Analyse des usages',
-                'Analyse des fonctionnalités / Pertinence',
-                'Analyse des risques',
-                'Analyse de redondance (doublons applicatifs)',
-                'Analyse qualitative (satisfaction)',
-                'Analyse prédictive',
-              ].includes(metric.title)
               const isUnitPrice = metric.badgeKey === 'unitPrice'
               const isFeaturesMetric = metric.badgeKey === 'featuresCount'
               const barSource =
@@ -541,7 +518,7 @@ export function Details() {
               return (
                 <article
                   key={metric.title}
-                  className={`metrics-card accent-${metric.accent} ${useEconomicStyle ? 'metrics-card--unit-price' : ''}`}
+                  className={`metrics-card accent-${metric.accent} metrics-card--unit-price`}
                 >
                   <header>
                     <div className="metrics-title">
@@ -551,7 +528,7 @@ export function Details() {
                     <p className="metrics-description">{metric.description}</p>
                   </header>
                   <div
-                    className={`metrics-body ${useEconomicStyle ? 'metrics-body--unit-price' : ''}`}
+                    className="metrics-body metrics-body--unit-price"
                   >
                     <div className={`metrics-stat metrics-stat--${metric.accent}`}>
                       <span className="metrics-stat__value">
