@@ -55,13 +55,13 @@ const METRIC_SECTIONS = [
   },
   {
     title: 'Analyse des fonctionnalités / Pertinence',
-    description: 'Evolution du nombres d’utilisateurs actifs en fonction du temps',
-    insight: 'L’adoption reste soutenue grâce à une couverture fonctionnelle complète.',
-    badgeText: '78% d’utilisateurs actifs',
+    description: 'Comparaison du nombre de fonctionnalités entre les différentes applications.',
+    insight: 'Le volume fonctionnel est mis en perspective avec les autres solutions du segment.',
+    badgeKey: 'featuresCount',
     badgeTone: 'neutral',
-    axisLabels: ['mars', 'juin', 'sept.'],
+    axisLabels: ['App A', 'App B', 'App C', 'App D', 'App E', 'App F'],
     accent: 'violet',
-    chartType: 'line',
+    chartType: 'bar',
   },
   {
     title: 'Analyse des risques',
@@ -129,6 +129,7 @@ export function Details() {
     prix_licence_unitaire: null,
   })
   const [applicationCosts, setApplicationCosts] = useState([])
+  const [applicationFeatures, setApplicationFeatures] = useState([])
 
   const decodedName = useMemo(() => {
     if (!appId) return '[nom_app]'
@@ -142,7 +143,6 @@ export function Details() {
   useEffect(() => {
     if (!decodedName || decodedName === '[nom_app]') return
 
-    const levelToTone = { good: 'green', medium: 'orange', low: 'red' }
     const fetchUsage = async () => {
       try {
         const res = await fetch(
@@ -150,9 +150,17 @@ export function Details() {
         )
         const data = await res.json()
 
-        // data.level = "good" | "medium" | "low"
-        const tone = levelToTone[data.level] ?? DEFAULT_TONE
-        setCriteriaTones((previous) => ({ ...previous, usage: tone }))
+        const evaluation = evaluateCriterion({
+          appValue: typeof data.app_users === 'number' ? data.app_users : null,
+          averageValue: typeof data.mean_users === 'number' ? data.mean_users : null,
+          higherIsBetter: true,
+        })
+        const levelToTone = { good: 'green', medium: 'orange', low: 'red' }
+        const fallbackTone = levelToTone[data.level] ?? DEFAULT_TONE
+        setCriteriaTones((previous) => ({
+          ...previous,
+          usage: evaluation.tone !== DEFAULT_TONE ? evaluation.tone : fallbackTone,
+        }))
       } catch (e) {
         console.error('Erreur usage-score', e)
         setCriteriaTones((previous) => ({ ...previous, usage: DEFAULT_TONE }))
@@ -231,6 +239,20 @@ export function Details() {
     fetchApplications()
   }, [])
 
+  useEffect(() => {
+    const fetchFeatures = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/applications/features')
+        const data = await res.json()
+        setApplicationFeatures(Array.isArray(data) ? data : [])
+      } catch (error) {
+        console.error('Erreur chargement fonctionnalités', error)
+      }
+    }
+
+    fetchFeatures()
+  }, [])
+
   // Static placeholder status instead of external theme
   const heroStatus = { className: 'status-bullet--placeholder', label: 'Statut (placeholder)' }
 
@@ -264,10 +286,92 @@ export function Details() {
     return null
   }
 
+  const currentFeaturesCount = useMemo(() => {
+    const match = applicationFeatures.find((app) => app.nom === decodedName)
+    return match && typeof match.features_count === 'number' ? match.features_count : null
+  }, [applicationFeatures, decodedName])
+
   const formatCurrency = (value) => {
     if (typeof value !== 'number') return '—'
     return `${value.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €`
   }
+
+  const formatYAxisValue = (value) => {
+    if (typeof value !== 'number') return '—'
+    return value.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
+  }
+
+  const evaluateCriterion = ({
+    appValue,
+    peerValues = [],
+    averageValue = null,
+    higherIsBetter = true,
+  }) => {
+    const cleanPeers = peerValues.filter((value) => typeof value === 'number' && !Number.isNaN(value))
+    const average =
+      typeof averageValue === 'number' && !Number.isNaN(averageValue)
+        ? averageValue
+        : cleanPeers.length
+          ? cleanPeers.reduce((sum, value) => sum + value, 0) / cleanPeers.length
+          : null
+
+    if (typeof appValue !== 'number' || appValue == null || !average || average <= 0) {
+      return { score: null, tone: DEFAULT_TONE, average }
+    }
+
+    const ratioRaw = average > 0 ? appValue / average : 0
+    const normalizedRatio =
+      higherIsBetter
+        ? ratioRaw
+        : appValue > 0
+          ? average / appValue
+          : Number.POSITIVE_INFINITY
+
+    let score = 0
+    if (normalizedRatio >= 1.6) score = 2
+    else if (normalizedRatio >= 1.15) score = 1
+    else if (normalizedRatio >= 0.9) score = 0
+    else if (normalizedRatio >= 0.6) score = -1
+    else score = -2
+
+    const tone = score >= 1 ? 'green' : score <= -1 ? 'red' : 'orange'
+
+    return { score, tone, average }
+  }
+
+  useEffect(() => {
+    const unitPrice = dataDetails.prix_licence_unitaire
+    if (!Array.isArray(applicationCosts) || applicationCosts.length === 0 || typeof unitPrice !== 'number') {
+      return
+    }
+    const numericCosts = applicationCosts
+      .map((app) => (typeof app.prix_licence_unitaire === 'number' ? app.prix_licence_unitaire : null))
+      .filter((value) => value != null)
+
+    const evaluation = evaluateCriterion({
+      appValue: unitPrice,
+      peerValues: numericCosts,
+      higherIsBetter: false,
+    })
+
+    setCriteriaTones((previous) => ({ ...previous, finance: evaluation.tone }))
+  }, [applicationCosts, dataDetails.prix_licence_unitaire])
+
+  useEffect(() => {
+    if (!decodedName || decodedName === '[nom_app]') return
+
+    const peerValues = applicationFeatures
+      .map((app) => (typeof app.features_count === 'number' ? app.features_count : null))
+      .filter((value) => value != null)
+
+    const evaluation = evaluateCriterion({
+      appValue: currentFeaturesCount,
+      peerValues,
+      higherIsBetter: true,
+    })
+
+    setCriteriaTones((previous) => ({ ...previous, features: evaluation.tone }))
+  }, [applicationFeatures, currentFeaturesCount, decodedName])
 
   return (
     <div className="details-page">
@@ -361,34 +465,84 @@ export function Details() {
               const rawBadgeText = metric.badgeText ?? ''
               const [badgeValue, ...badgeLabelParts] = rawBadgeText.split(' ')
               const badgeLabel = badgeLabelParts.join(' ').trim()
+              const useEconomicStyle = [
+                'Analyse économique (coût et rentabilité)',
+                'Analyse des usages',
+                'Analyse des fonctionnalités / Pertinence',
+                'Analyse des risques',
+                'Analyse de redondance (doublons applicatifs)',
+                'Analyse qualitative (satisfaction)',
+                'Analyse prédictive',
+              ].includes(metric.title)
+              const isUnitPrice = metric.badgeKey === 'unitPrice'
+              const isFeaturesMetric = metric.badgeKey === 'featuresCount'
+              const barSource =
+                metric.chartType === 'bar' && isUnitPrice
+                  ? applicationCosts
+                  : metric.chartType === 'bar' && isFeaturesMetric
+                    ? applicationFeatures
+                    : []
               const axisLabels =
-                metric.chartType === 'bar' && metric.badgeKey === 'unitPrice'
-                  ? (applicationCosts.length ? applicationCosts.map((app) => app.nom) : metric.axisLabels)
+                metric.chartType === 'bar' && barSource.length
+                  ? barSource.map((app) => app.nom)
                   : metric.axisLabels
-              const costValues = applicationCosts.map((app) =>
-                typeof app.prix_licence_unitaire === 'number' ? app.prix_licence_unitaire : 0,
-              )
-              const maxCost = costValues.length ? Math.max(...costValues) : null
-              const yAxisMax = maxCost ? Math.ceil(maxCost / 50) * 50 : 50
+              const barValues =
+                metric.chartType === 'bar' && barSource.length
+                  ? barSource.map((app) => {
+                      if (isUnitPrice) {
+                        return typeof app.prix_licence_unitaire === 'number'
+                          ? app.prix_licence_unitaire
+                          : null
+                      }
+                      if (isFeaturesMetric) {
+                        return typeof app.features_count === 'number' ? app.features_count : null
+                      }
+                      return null
+                    })
+                  : []
+              const maxBarValue =
+                barValues.length && barValues.some((value) => typeof value === 'number')
+                  ? Math.max(...barValues.map((value) => (typeof value === 'number' ? value : 0)))
+                  : null
               const heights =
                 metric.chartType === 'bar'
                   ? (() => {
-                      if (metric.badgeKey !== 'unitPrice' || applicationCosts.length === 0) {
-                        return axisLabels.map((_, index) =>
+                      if (barValues.length) {
+                        const max = Math.max(
+                          ...barValues.map((value) => (typeof value === 'number' ? value : 0)),
+                          1,
+                        )
+                        return barValues.map((value) =>
+                          Math.max(0.15, Math.min(1, (typeof value === 'number' ? value : 0) / max)),
+                        )
+                      }
+                      return axisLabels.map((_, index) =>
+                        Math.max(
+                          0.15,
                           Array.isArray(metric.barHeights) && metric.barHeights[index] != null
                             ? metric.barHeights[index]
                             : 0.6,
-                        )
-                      }
-                      const max = Math.max(...costValues, 1)
-                      return costValues.map((value) => Math.min(1, value / max))
+                        ),
+                      )
                     })()
                   : []
+              const yAxisTopValue =
+                metric.chartType === 'bar'
+                  ? maxBarValue && maxBarValue > 0
+                    ? maxBarValue
+                    : isUnitPrice
+                      ? 12500
+                      : 10
+                  : null
               const activePercent = metric.badgeKey === 'activePercent' ? computeActivePercent() : null
-              const unitPrice = metric.badgeKey === 'unitPrice' ? dataDetails.prix_licence_unitaire : null
+              const unitPrice = isUnitPrice ? dataDetails.prix_licence_unitaire : null
+              const featuresCount = isFeaturesMetric ? currentFeaturesCount : null
 
               return (
-                <article key={metric.title} className={`metrics-card accent-${metric.accent}`}>
+                <article
+                  key={metric.title}
+                  className={`metrics-card accent-${metric.accent} ${useEconomicStyle ? 'metrics-card--unit-price' : ''}`}
+                >
                   <header>
                     <div className="metrics-title">
                       <h3>{metric.title}</h3>
@@ -396,25 +550,33 @@ export function Details() {
                     </div>
                     <p className="metrics-description">{metric.description}</p>
                   </header>
-                  <div className="metrics-body">
+                  <div
+                    className={`metrics-body ${useEconomicStyle ? 'metrics-body--unit-price' : ''}`}
+                  >
                     <div className={`metrics-stat metrics-stat--${metric.accent}`}>
                       <span className="metrics-stat__value">
                         {metric.badgeKey === 'activePercent'
                           ? activePercent != null
                             ? `${activePercent}%`
                             : '—'
-                          : metric.badgeKey === 'unitPrice'
+                          : isUnitPrice
                             ? typeof unitPrice === 'number'
                               ? `${unitPrice.toLocaleString('fr-FR')} €`
                               : '—'
+                            : isFeaturesMetric
+                              ? typeof featuresCount === 'number'
+                                ? formatYAxisValue(featuresCount)
+                                : '—'
                             : badgeLabel
                               ? badgeValue
                               : metric.badgeText}
                       </span>
                       {metric.badgeKey === 'activePercent' ? (
                         <span className="metrics-stat__label">Utilisateurs actifs / 90j</span>
-                      ) : metric.badgeKey === 'unitPrice' ? (
+                      ) : isUnitPrice ? (
                         <span className="metrics-stat__label">Prix licence unitaire</span>
+                      ) : isFeaturesMetric ? (
+                        <span className="metrics-stat__label">Nombre de fonctionnalités</span>
                       ) : badgeLabel ? (
                         <span className="metrics-stat__label">{badgeLabel}</span>
                       ) : null}
@@ -423,35 +585,52 @@ export function Details() {
                     {/* ----- VISUEL DU GRAPH ----- */}
                     <div className={`metrics-visual metrics-visual--${metric.accent}`} aria-hidden="true">
                       {metric.chartType === 'bar' ? (
-  <>
-    <div className="sparkline sparkline-bar sparkline-bar--muted">
-      <div className="bar-chart__grid">
-        {axisLabels.map((label, index) => {
-          const factor = heights[index] ?? 0.6
-          const value =
-            metric.badgeKey === 'unitPrice' && applicationCosts[index]
-              ? applicationCosts[index].prix_licence_unitaire
-              : null
-          return (
-            <div key={label} className="bar-chart__bar-wrapper">
-              <div
-                className="bar-chart__bar bar-chart__bar--muted"
-                style={{ height: `${factor * 100}%` }}
-              />
-              <span className="bar-chart__label">{label}</span>
-              {metric.badgeKey === 'unitPrice' ? (
-                <span className="bar-chart__value">{value != null ? `${value.toLocaleString('fr-FR')} €` : '—'}</span>
-              ) : null}
-            </div>
-          )
-        })}
-      </div>
-      <div className="bar-chart__y-axis">
-        <span>{metric.badgeKey === 'unitPrice' ? formatCurrency(yAxisMax) : '50€'}</span>
-        <span>0€</span>
-      </div>
+  <div className="pill-bar-chart">
+    <div className="pill-bar-chart__y">
+      <span className="pill-bar-chart__tick pill-bar-chart__tick--top">
+        {formatYAxisValue(yAxisTopValue)}
+      </span>
+      <span className="pill-bar-chart__tick pill-bar-chart__tick--zero">0</span>
     </div>
-  </>
+    <div className="pill-bar-chart__plot">
+      {axisLabels.map((label, index) => {
+        const factor = heights[index] ?? 0
+        const barHeight = Math.max(10, Math.round(factor * 90))
+        const value =
+          isUnitPrice && applicationCosts[index]
+            ? applicationCosts[index].prix_licence_unitaire
+            : isFeaturesMetric && applicationFeatures[index]
+              ? applicationFeatures[index].features_count
+              : null
+        const title = isUnitPrice
+          ? value != null
+            ? formatCurrency(value)
+            : 'Non renseigné'
+          : value != null
+            ? formatYAxisValue(value)
+            : 'Non renseigné'
+        return (
+          <div key={label} className="pill-bar">
+            <div
+              className="pill-bar__shape"
+              style={{ height: `${barHeight}px` }}
+              title={title}
+            />
+          </div>
+        )
+      })}
+    </div>
+    <div className="pill-bar-chart__labels">
+      {axisLabels.map((label) => (
+        <span key={label} className="pill-bar-chart__label">
+          {label}
+        </span>
+      ))}
+    </div>
+    {metric.badgeKey === 'unitPrice' ? (
+      <p className="pill-bar-chart__caption">Le coût unitaire est comparé aux autres solutions du segment.</p>
+    ) : null}
+  </div>
 ) : (
   <>
     <div className={`sparkline sparkline-${metric.accent} ${metric.title === 'Analyse des usages' ? 'sparkline--disabled' : ''}`}>
@@ -468,7 +647,7 @@ export function Details() {
 
                     </div>
                   </div>
-                  <p className="metrics-insight">{metric.insight}</p>
+                  
                 </article>
               )
             })}

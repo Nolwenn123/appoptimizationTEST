@@ -158,6 +158,11 @@
   font-size: var(--size-body);
 }
 
+.hero-stat__value {
+  font-family: 'Poppins-SemiBold', sans-serif;
+  font-size: 24px;
+}
+
 .hero-stat--mint {
   background: #cdeebe;
 }
@@ -474,11 +479,23 @@
   color: #919191;
 }
 
+.metrics-card--unit-price .metrics-description {
+  font-family: 'Poppins-Regular', sans-serif;
+}
+
 .metrics-body {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: stretch;
   gap: 1.4rem;
+}
+
+.metrics-body--unit-price {
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-items: center;
+  justify-items: center;
+  gap: 2.2rem;
 }
 
 .metrics-stat {
@@ -507,6 +524,31 @@
   font-size: var(--size-small);
   line-height: 1.35;
   color: #1f2332;
+}
+
+.metrics-card--unit-price .metrics-title h3 {
+  font-family: 'Poppins-SemiBold', sans-serif;
+  font-size: 1.2rem;
+}
+
+.metrics-card--unit-price .metrics-stat {
+  align-self: start;
+  margin-top: 24px; /* centre verticalement par rapport à l'axe de 170px et un bloc de 122px */
+}
+
+.metrics-card--unit-price .metrics-stat__value {
+  font-family: 'Poppins-SemiBold', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.metrics-card--unit-price .metrics-stat__label {
+  font-family: 'Poppins-Light', sans-serif;
+  font-size: 16px;
+}
+
+.metrics-body--unit-price {
+  align-items: center;
 }
 
 .metrics-stat--mint {
@@ -677,97 +719,140 @@
 }
 /* ===== BAR CHART POUR LA CARD ECONOMIQUE ===== */
 
-.sparkline-bar {
+.pill-bar-chart {
   position: relative;
-  height: 180px;          /* hauteur fixe du graphique */
-  border-radius: 22px;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  align-items: end;
+  min-height: 0;
+  padding: 1rem 1rem 1.2rem 1rem;
   background: transparent;
+  border-radius: 22px;
+  --bar-width: 28px;
+  --bar-gap: 0px;
 }
 
-.sparkline-bar--muted {
-  background: #f3f4f6;
-}
-
-/* Axes, même style que la courbe */
-.sparkline-bar::before {
-  content: '';
-  position: absolute;
-  left: 14%;
-  top: 16%;
-  bottom: 24%;
-  width: 2px;
-  background: rgba(124, 135, 180, 0.28);
-}
-
-.sparkline-bar::after {
-  content: '';
-  position: absolute;
-  left: 14%;
-  right: 10%;
-  bottom: 24%;
-  height: 2px;
-  background: rgba(124, 135, 180, 0.28);
-}
-
-/* Zone dans laquelle les barres sont dessinées */
-.bar-chart__grid {
-  position: absolute;
-  left: 14%;
-  right: 10%;
-  top: 16%;
-  bottom: 24%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.8rem;
-}
-
-.bar-chart__bar-wrapper {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-}
-
-/* La barre en elle-même (hauteur contrôlée par le style inline) */
-.bar-chart__bar {
-  width: 26px;
-  max-width: 32px;
-  border-radius: 30px;
-  background: rgba(0, 0, 0, 0.12); /* bien visible */
-}
-
-.bar-chart__bar--muted {
-  background: #cfd3db;
-}
-
-.bar-chart__label {
-  display: inline-block;
-  margin-top: 0.35rem;
-  font-size: 12px;
-  color: #828aa4;
-  transform: rotate(-45deg);
-  transform-origin: top left;
-}
-
-.bar-chart__value {
-  display: inline-block;
-  margin-top: 0.25rem;
-  font-size: 11px;
-  color: #676d80;
-}
-
-.bar-chart__y-axis {
-  position: absolute;
-  left: 6px;
-  top: 20px;
-  bottom: 24%;
+.pill-bar-chart__y {
+  position: relative;
+  height: 170px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 0.2rem 6px 0;
+  font-family: 'Poppins-Regular', sans-serif;
+  font-weight: 400;
+  color: #656565;
   font-size: 12px;
-  color: #828aa4;
+  letter-spacing: 0.01em;
+}
+
+.pill-bar-chart__tick {
+  transform: translateY(-2px);
+}
+
+.pill-bar-chart__tick--zero {
+  margin-top: auto;
+}
+
+.pill-bar-chart__plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--bar-gap);
+  padding: 0 0 8px 30px;
+  height: 170px;
+  width: max-content;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.pill-bar-chart__plot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 170px;
+  width: 1px;
+  background: #656565;
+  border-radius: 8px;
+}
+
+.pill-bar-chart__plot::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1px;
+  width: calc(100% + 50px);
+  background: #656565;
+  border-radius: 8px;
+}
+
+.pill-bar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
+  height: 100%;
+  flex: 0 0 var(--bar-width);
+  padding-bottom: var(--axis-gap);
+}
+
+.pill-bar__shape {
+  width: calc(var(--bar-width) - 2px);
+  background: #d9d9d9;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+.pill-bar__label {
+  display: inline-block;
+  font-size: 0.95rem;
+  color: #171717;
+  transform: rotate(-55deg);
+  transform-origin: center top;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pill-bar-chart__labels {
+  grid-column: 2 / span 1;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--bar-gap);
+  padding: 0 0 0 24px;
+  width: max-content;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.pill-bar-chart__label {
+  display: inline-block;
+  font-size: 12px;
+  color: #171717;
+  font-family: 'Poppins-Regular', sans-serif;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateX(-10px) rotate(-55deg);
+  transform-origin: right top;
+  height: 52px;
+  width: var(--bar-width);
+  text-align: right;
+}
+
+.pill-bar-chart__caption {
+  grid-column: 1 / -1;
+  margin: 0.4rem 0 0;
+  font-family: 'Poppins-Italic', 'Poppins-Light', sans-serif;
+  font-size: 12px;
+  color: #919191;
+  text-align: center;
 }
 
 

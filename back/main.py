@@ -298,6 +298,27 @@ def get_app_costs() -> List[Dict[str, Any]]:
 
     return costs
 
+
+def get_feature_counts() -> List[Dict[str, Any]]:
+    """Return list of applications with their number of declared features."""
+    res_apps = supabase.table("application").select("id, nom").execute()
+    apps = res_apps.data or []
+    app_index = {row["id"]: row["nom"] for row in apps}
+
+    res_links = supabase.table("application_type_fonctionnel").select("application_id").execute()
+    counts: Dict[int, int] = {}
+    for row in res_links.data or []:
+        app_id = row.get("application_id")
+        if app_id is None:
+            continue
+        counts[app_id] = counts.get(app_id, 0) + 1
+
+    features: List[Dict[str, Any]] = []
+    for app_id, app_name in app_index.items():
+        features.append({"nom": app_name, "features_count": counts.get(app_id, 0)})
+
+    return features
+
 @app.get("/")
 async def root():
     return {"message": "Bienvenue sur mon API FastAPI 😊"}
@@ -332,5 +353,13 @@ async def application_details(app_name: str):
 async def applications_costs():
     try:
         return get_app_costs()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/applications/features")
+async def applications_features():
+    try:
+        return get_feature_counts()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
